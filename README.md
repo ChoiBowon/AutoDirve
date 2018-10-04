@@ -2,8 +2,8 @@
 이 프로젝트의 목표는 yolo v2 를 구현하는 것 입니다.
 - - -
 Contributor
-- Jongho Park
-- Jongsoo Keum
+- sungmin cho
+- bowon choi
 ---
 method : deep learning
 - - -
