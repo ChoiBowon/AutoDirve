@@ -11,5 +11,4 @@ temp/
 .idea/
 
 __pycache__/
-*/__pycahce__/*
-# dataset/__pacahe__/* 
+*/__pycache__/*

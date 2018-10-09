@@ -22,3 +22,4 @@ loss : MSE + regularization (예정)
 ***
 2018.10.04 - 데이터베이스 구성
 * * *
+2018.10.09 - data_my.py 만들며 dataset 이해 (sungmin)
