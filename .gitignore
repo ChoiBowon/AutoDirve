@@ -1,0 +1,13 @@
+# data 
+data/
+
+# train
+temp/
+
+# pycharm IDE
+*.py[cod]
+.idea/workspace.xml
+.idea/tasks/xml
+.idea/
+
+__pycache__/
