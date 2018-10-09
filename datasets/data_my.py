@@ -17,6 +17,8 @@ def read_data(data_dir, img_size=(416, 416), pixel_per_grid=32):
     """
     # 이미지 디렉토리
     img_dir = os.path.join(data_dir, 'images')
+    # 어노테이션 디렉토리
+    anno_dir = os.path.join(data_dir, 'annotations')
     # 클래스 디렉토리
     class_map_path = os.path.join(data_dir, 'classes.json')
     # 앵커 디렉토리
@@ -46,6 +48,7 @@ def read_data(data_dir, img_size=(416, 416), pixel_per_grid=32):
     img_paths = []
     img_paths.extend(glob.glob(os.path.join(img_dir, '*.jpg')))
 
+
     # print(img_paths)
     # print(len(img_paths))
 
@@ -53,15 +56,62 @@ def read_data(data_dir, img_size=(416, 416), pixel_per_grid=32):
     labels = []
 
     # 이미지 패스를 돌면서
+    # for img_path in img_paths:
     for img_path in img_paths:
         # 이미지 읽어오기
-        img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+        img = cv2.imread(img_path)
         # 이미지 어래이로 변경
         img = np.array(img, dtype=np.float32)
         img_origin_size = img.shape[:2]
         img = cv2.resize(img, (img_size[1], img_size[0]))
-        cv2.imshow('result', img)
-        cv2.waitKey(0)
+
+        # 확인 해 보는 부분
+        # cv2.imshow just read unit8 : issue 01
+        # cv2.imshow('result', img.astype(np.uint8))
+        # cv2.waitKey(0)
+
+        # load bboxes and reshape for yolo model
+
+        # os.path.basename : 맨마지막 파일 반환
+        # os.path.splitext : 입력 받은 경로를 확장자 부분과 그 외의 부분으로 나눕니다. (extension : 경로확장자)
+
+        # os.path.basename(img_path).split('.')[0]
+        # os.path.splitext(os.path.basename(img_path))[0]
+        # 위의 2개가 여기서는 같은 역할을 한다.
+
+        # 파일 이름만 가져와서
+        name = os.path.splitext(os.path.basename(img_path))[0]
+        # 뒤에 어노 붙여서 path 만든다.
+        anno_path = os.path.join(anno_dir, '{}.anno'.format(name))
+
+        # 어노테이션 읽는 부분
+        with open(anno_path, 'r') as f:
+            anno = json.load(f)
+
+        label = np.zeros((grid_h, grid_w, len(anchors), 5 + num_classes))
+
+        # 어노 내부에서
+        # class 에 key ( 번호 ) 와 value ( object 이름 )
+        for c_idx, c_name in class_map.items():
+            # 클래스가 없을 수도 있자너
+            if c_name not in anno:
+                continue
+            # 어노테이션의 class 가 있다면, 좌상점, 우하점 받아옴
+            for x_min, y_min, x_max, y_max in anno[c_name]:
+
+                # original height, original weight
+                origin_height, origin_weight = img_origin_size
+                # 0 - 1 로 scaling 해 주는 부분
+                x_min, y_min, x_max, y_max = x_min / origin_weight, y_min / origin_height, \
+                                             x_max / origin_weight, y_max / origin_height
+                # print("before : ", c_name, x_min, y_min, x_max, y_max)
+
+                # np.clip ( a, b, c ) : a 가 b 와 c 의 범위로 들어가는 것! : 음수인 부분 잡아준다.
+                x_min, y_min, x_max, y_max = np.clip([x_min, y_min, x_max, y_max], 0, 1)
+
+                # print("afters : ", c_name, x_min, y_min, x_max, y_max)
+
+
 
     return img_dir
 

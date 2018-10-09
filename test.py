@@ -69,6 +69,6 @@ for idx, (img, y_pred, im_path) in enumerate(zip(test_set.images, test_y_pred, i
 
     # print(draw_path)
     cv2.imwrite(draw_path, boxed_img)
-    #cv2.imshow("img", img)
-    #cv2.imshow("output", boxed_img)
-    #cv2.waitKey(0)
+    cv2.imshow("img", img.astype(np.uint8))
+    cv2.imshow("output", boxed_img.astype(np.uint8))
+    cv2.waitKey(0)
