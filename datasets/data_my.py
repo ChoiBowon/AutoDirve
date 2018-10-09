@@ -108,9 +108,45 @@ def read_data(data_dir, img_size=(416, 416), pixel_per_grid=32):
 
                 # np.clip ( a, b, c ) : a 가 b 와 c 의 범위로 들어가는 것! : 음수인 부분 잡아준다.
                 x_min, y_min, x_max, y_max = np.clip([x_min, y_min, x_max, y_max], 0, 1)
-
                 # print("afters : ", c_name, x_min, y_min, x_max, y_max)
 
+                # anchor box 를 각 이미지에 맞게 조정
+                anchor_boxes = np.array(anchors) / np.array([origin_weight, origin_height])
+                print(anchor_boxes)
+                # 바운딩 박스 만든다.
+                box_wh = np.array([x_min, y_min, x_max, y_max])
+                best_iou = 0
+                best_anchor = 0
+
+                # enumerate : 앞에 숫자를 붙여서 세면서 뒤의 내용을 같이 보내주는 역할
+
+                # anchor_boxes 가
+                # [[0.17380581 0.31096117]
+                #  [0.2302566  0.40886933]
+                #  [0.24987417 0.44630213]
+                #  [0.09947592 0.17172213]
+                #  [0.16759337 0.2942268 ]]
+                # 라면
+                # 0, [0.17380581 0.31096117]
+                # 1, [0.2302566  0.40886933]
+                # 2, [0.24987417 0.44630213]
+                # 3, [0.09947592 0.17172213]
+                # 4, [0.16759337 0.2942268 ]
+                # 요렇게 변환
+
+                # ??
+                for k, anchor in enumerate(anchor_boxes):
+
+                    print(box_wh.shape)
+                    print(anchor.shape)
+                    intersect_wh = np.maximum(np.minimum(box_wh, anchor), 0.0)
+                    intersect_area = intersect_wh[0] * intersect_wh[1]
+                    box_area = box_wh[0] * box_wh[1]
+                    anchor_area = anchor[0] * anchor[1]
+                    iou = intersect_area / (box_area + anchor_area - intersect_area)
+                    if iou > best_iou:
+                        best_iou = iou
+                        best_anchor = k
 
 
     return img_dir
