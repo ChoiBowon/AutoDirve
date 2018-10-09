@@ -13,7 +13,7 @@ def read_data(data_dir, image_size, pixels_per_grid=32, no_label=False):
     :param data_dir: str, path to the directory to read. It should include class_map, anchors, annotations
     :image_size: tuple, image size for resizing images
     :pixels_per_gird: int, the actual size of a grid
-    :no_label: bool, whetehr to load labels
+    :no_label: bool, whether to load labels
     :return: X_set: np.ndarray, shape: (N, H, W, C).
              y_set: np.ndarray, shape: (N, g_H, g_W, anchors, 5 + num_classes).
     """
@@ -24,11 +24,13 @@ def read_data(data_dir, image_size, pixels_per_grid=32, no_label=False):
     anchors = load_json(anchors_path)
     num_classes = len(class_map)
     grid_h, grid_w = [image_size[i] // pixels_per_grid for i in range(2)]
+
     im_paths = []
     for ext in IM_EXTENSIONS:
         im_paths.extend(glob.glob(os.path.join(im_dir, '*.{}'.format(ext))))
     anno_dir = os.path.join(data_dir, 'annotations')
 
+    print(im_paths)
     images = []
     labels = []
 
