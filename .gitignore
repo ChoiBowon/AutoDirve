@@ -13,3 +13,5 @@ __pycache__/
 .idea/tasks/xml
 .idea/
 
+*.pyc
+*.pyo
