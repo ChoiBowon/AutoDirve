@@ -11,3 +11,5 @@ temp/
 .idea/
 
 __pycache__/
+*/__pycahce__/
+# 
