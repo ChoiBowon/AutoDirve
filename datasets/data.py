@@ -40,14 +40,18 @@ def read_data(data_dir, image_size, pixels_per_grid=32, no_label=False):
         im = np.array(im, dtype=np.float32)
         im_original_sizes = im.shape[:2]
         im = resize(im, (image_size[1], image_size[0]))
+
+        # 흑백인 img 에 대하여
         if len(im.shape) == 2:
             im = np.expand_dims(im, 2)
             im = np.concatenate([im, im, im], -1)
         images.append(im)
 
+        # label 이 존재하지 않으면
         if no_label:
             labels.append(0)
             continue
+
         # load bboxes and reshape for yolo model
         name = os.path.splitext(os.path.basename(im_path))[0]
         anno_path = os.path.join(anno_dir, '{}.anno'.format(name))
