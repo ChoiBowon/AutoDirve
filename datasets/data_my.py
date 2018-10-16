@@ -112,9 +112,9 @@ def read_data(data_dir, img_size=(416, 416), pixel_per_grid=32):
 
                 # anchor box 를 각 이미지에 맞게 조정
                 anchor_boxes = np.array(anchors) / np.array([origin_weight, origin_height])
-                print(anchor_boxes)
+                # print(anchor_boxes)
                 # 바운딩 박스 만든다.
-                box_wh = np.array([x_min, y_min, x_max, y_max])
+                box_wh = np.array([x_max - x_min, y_max - y_min])
                 best_iou = 0
                 best_anchor = 0
 
@@ -137,19 +137,40 @@ def read_data(data_dir, img_size=(416, 416), pixel_per_grid=32):
                 # enumerate 하는 부분
                 for k, anchor in enumerate(anchor_boxes):
 
-                    print(box_wh.shape)
-                    print(anchor.shape)
                     intersect_wh = np.maximum(np.minimum(box_wh, anchor), 0.0)
+                    # 겹치는 부분의 넓이를 구한다.
                     intersect_area = intersect_wh[0] * intersect_wh[1]
+                    # bounding box 부분의 넓이를 구한다.
                     box_area = box_wh[0] * box_wh[1]
+                    # anchor_area 부분의 넓이를 구한다.
                     anchor_area = anchor[0] * anchor[1]
+                    # intersection over union = 겹치는 넓이 / 전체 넓이
                     iou = intersect_area / (box_area + anchor_area - intersect_area)
                     if iou > best_iou:
                         best_iou = iou
 
                         best_anchor = k
-                return best_anchor
-    return img_dir
+
+                best_anchor = best_anchor
+                # print("best_anchor", best_anchor)
+                # 중심 부분 찾는 부분
+                cx = int(np.floor(0.5 * (x_min + x_max) * grid_w))
+                cy = int(np.floor(0.5 * (y_min + y_max) * grid_h))
+
+                ## ??
+                label[cy, cx, best_anchor, 0:4] = [x_min, y_min, x_max, y_max]
+
+                # confidence ~ probability
+
+                label[cy, cx, best_anchor, 4] = 1.0
+                label[cy, cx, best_anchor, 5 + int(c_idx)] = 1.0
+
+        labels.append(label)
+
+    x_set = np.array(images, dtype=np.float32)
+    y_set = np.array(labels, dtype=np.float32)
+
+    return x_set, y_set
 
 
 if __name__ == "__main__":
