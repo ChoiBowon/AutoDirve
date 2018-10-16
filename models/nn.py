@@ -408,36 +408,3 @@ class YOLO(DetectNet):
         total_loss = tf.reduce_sum(merged_loss, axis=-1)
         total_loss = tf.reduce_mean(total_loss)
         return total_loss
-
-    # def interpret_output(self, sess, images, **kwargs):
-    #     """
-    #     Interpret outputs to decode bounding box from y_pred.
-    #     :param sess: tf.Session
-    #     :param kwargs: dict, extra arguments for prediction.
-    #             -batch_size: int, batch size for each iteraction.
-    #     :param images: np.ndarray, shape (N, H, W, C)
-    #     :return bbox_pred: np.ndarray, shape (N, grid_h*grid_w*num_anchors, 5 + num_classes)
-    #     """
-    #     batch_size = kwargs.pop('batch_size', 32)
-    #     is_batch = len(images.shape) == 4
-    #     if not is_batch:
-    #         images = np.expand_dims(images, 0)
-    #     pred_size = images.shape[0]
-    #     num_steps = pred_size // batch_size
-
-    #     bboxes = []
-    #     for i in range(num_steps + 1):
-    #         if i == num_steps:
-    #             image = images[i * batch_size:]
-    #         else:
-    #             image = images[i * batch_size:(i + 1) * batch_size]
-    #         bbox = sess.run(self.pred_y, feed_dict={
-    #                         self.X: image, self.is_train: False})
-    #         bbox = np.reshape(bbox, (bbox.shape[0], -1, bbox.shape[-1]))
-    #         bboxes.append(bbox)
-    #     bboxes = np.concatenate(bboxes, axis=0)
-
-    #     if is_batch:
-    #         return bboxes
-    #     else:
-    #         return bboxes[0]

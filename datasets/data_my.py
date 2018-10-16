@@ -134,7 +134,7 @@ def read_data(data_dir, img_size=(416, 416), pixel_per_grid=32):
                 # 4, [0.16759337 0.2942268 ]
                 # 요렇게 변환
 
-                # ??
+                # enumerate 하는 부분
                 for k, anchor in enumerate(anchor_boxes):
 
                     print(box_wh.shape)
@@ -146,9 +146,9 @@ def read_data(data_dir, img_size=(416, 416), pixel_per_grid=32):
                     iou = intersect_area / (box_area + anchor_area - intersect_area)
                     if iou > best_iou:
                         best_iou = iou
+
                         best_anchor = k
-
-
+                return best_anchor
     return img_dir
 
 
