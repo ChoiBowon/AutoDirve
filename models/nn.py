@@ -346,15 +346,32 @@ class YOLO(DetectNet):
         anchors = self.anchors
         # [[[[[grid_w, grid_h]]]]] 로 변형 하는 부분
         grid_wh = np.reshape([grid_w, grid_h], [1, 1, 1, 1, 2]).astype(np.float32)
+        # np.repeat --> arr = [ 1, 2, 3, 4 ] 의 배열이 있으면, 각 배열의 원소를 뒤만큼 반복한다.
+        # np.repeat(arr, 3) # [1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4] ㅇㅇ
+        # 여기서는 [0, 1, ... 12] 인데 이걸 13 번 반복
+        # --> [0 0 0 0 0 ... 1 1 1 1 ... ..... 12 12 12 12.... ]
 
+        # np.tile([0 1 ... 12], 13) 도 반복인데 뒤에 붙이는거!
+        # 즉 [0 1 2 ... 12 를 13번 반복]
+        # transpose 는 위아래 로 보내주는거
         cxcy = np.transpose([np.tile(np.arange(grid_w), grid_h), np.repeat(np.arange(grid_h), grid_w)])
-        cxcy = np.reshape(cxcy, (1, grid_h, grid_w, 1, 2))
-        # 각각의 cell의 쌍을 만드는 부분
+        # 각각의 cell의 쌍을 만드는 부분!
         # [[0 0], [1 0], ... [12 12]] 169 개
         # [[ ]]
 
+        cxcy = np.reshape(cxcy, (1, grid_h, grid_w, 1, 2))
+        # cxcy = np.reshape(cxcy, (grid_h, grid_w, 2)) 하고 np.newaxis 로 추가해도 됨 ㅎㅎ
+        # (13,13,2) 로 만들  [ [[[0 0], [0 1], [0 2] ..., [0 12]]
+        #                       [[1 0], [1 1], [1 2] ..., [1 12]]
+        #                                 ....
+        #                       [[11 0], [11 1]     ..., [11 12]]
+        #                       [[12 0], [12 1]     ..., [12 12]]] ]
+
+
         # d['pred'] = tf.reshape(d['logit'],
-        # (-1, self.grid_size[0], self.grid_size[1], self.num_anchors, 5 + self.num_classes))
+        #  (-1, self.grid_size[0], self.grid_size[1], self.num_anchors, 5 + self.num_classes))
+        # 배치 그리드 h, 그리드 w, 에폭수, 5 + 클래스 갯수)
+
 
         txty, twth = self.pred[..., 0:2], self.pred[..., 2:4]
         confidence = tf.sigmoid(self.pred[..., 4:5])
@@ -363,7 +380,7 @@ class YOLO(DetectNet):
         pwph = np.reshape(anchors, (1, 1, 1, self.num_anchors, 2)) / 32
         bwbh = tf.exp(twth) * pwph
 
-        # calculating for prediction
+        `# calculating for prediction
         nxny, nwnh = bxby / grid_wh, bwbh / grid_wh
         nx1ny1, nx2ny2 = nxny - 0.5 * nwnh, nxny + 0.5 * nwnh
         self.pred_y = tf.concat((nx1ny1, nx2ny2, confidence, class_probs), axis=-1)
