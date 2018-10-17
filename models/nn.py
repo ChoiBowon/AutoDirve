@@ -334,23 +334,31 @@ class YOLO(DetectNet):
                 - loss_weights: list, [xy, wh, resp_confidence, no_resp_confidence, class_probs]
         :return tf.Tensor.
         """
-
+        # 앞에 붙을 파라미터들 설정하는 부분
         loss_weights = kwargs.pop('loss_weights', [5, 5, 5, 0.5, 1.0])
         # DEBUG
         # loss_weights = kwargs.pop('loss_weights', [1.0, 1.0, 1.0, 1.0, 1.0])
+        # 그리드 사이즈 (13, 13)
         grid_h, grid_w = self.grid_size
+        # 클래스
         num_classes = self.num_classes
+        # 앵커 받아오는 부분
         anchors = self.anchors
-        grid_wh = np.reshape([grid_w, grid_h], [
-                             1, 1, 1, 1, 2]).astype(np.float32)
-        cxcy = np.transpose([np.tile(np.arange(grid_w), grid_h),
-                             np.repeat(np.arange(grid_h), grid_w)])
+        # [[[[[grid_w, grid_h]]]]] 로 변형 하는 부분
+        grid_wh = np.reshape([grid_w, grid_h], [1, 1, 1, 1, 2]).astype(np.float32)
+
+        cxcy = np.transpose([np.tile(np.arange(grid_w), grid_h), np.repeat(np.arange(grid_h), grid_w)])
         cxcy = np.reshape(cxcy, (1, grid_h, grid_w, 1, 2))
+        # 각각의 cell의 쌍을 만드는 부분
+        # [[0 0], [1 0], ... [12 12]] 169 개
+        # [[ ]]
+
+        # d['pred'] = tf.reshape(d['logit'],
+        # (-1, self.grid_size[0], self.grid_size[1], self.num_anchors, 5 + self.num_classes))
 
         txty, twth = self.pred[..., 0:2], self.pred[..., 2:4]
         confidence = tf.sigmoid(self.pred[..., 4:5])
-        class_probs = tf.nn.softmax(
-            self.pred[..., 5:], axis=-1) if num_classes > 1 else tf.sigmoid(self.pred[..., 5:])
+        class_probs = tf.nn.softmax(self.pred[..., 5:], axis=-1) if num_classes > 1 else tf.sigmoid(self.pred[..., 5:])
         bxby = tf.sigmoid(txty) + cxcy
         pwph = np.reshape(anchors, (1, 1, 1, self.num_anchors, 2)) / 32
         bwbh = tf.exp(twth) * pwph
@@ -358,8 +366,7 @@ class YOLO(DetectNet):
         # calculating for prediction
         nxny, nwnh = bxby / grid_wh, bwbh / grid_wh
         nx1ny1, nx2ny2 = nxny - 0.5 * nwnh, nxny + 0.5 * nwnh
-        self.pred_y = tf.concat(
-            (nx1ny1, nx2ny2, confidence, class_probs), axis=-1)
+        self.pred_y = tf.concat((nx1ny1, nx2ny2, confidence, class_probs), axis=-1)
 
         # calculating IoU for metric
         num_objects = tf.reduce_sum(self.y[..., 4:5], axis=[1, 2, 3, 4])
@@ -367,13 +374,10 @@ class YOLO(DetectNet):
         min_nx2ny2 = tf.minimum(self.y[..., 2:4], nx2ny2)
         intersect_wh = tf.maximum(min_nx2ny2 - max_nx1ny1, 0.0)
         intersect_area = tf.reduce_prod(intersect_wh, axis=-1)
-        intersect_area = tf.where(
-            tf.equal(intersect_area, 0.0), tf.zeros_like(intersect_area), intersect_area)
-        gt_box_area = tf.reduce_prod(
-            self.y[..., 2:4] - self.y[..., 0:2], axis=-1)
+        intersect_area = tf.where(tf.equal(intersect_area, 0.0), tf.zeros_like(intersect_area), intersect_area)
+        gt_box_area = tf.reduce_prod(self.y[..., 2:4] - self.y[..., 0:2], axis=-1)
         box_area = tf.reduce_prod(nx2ny2 - nx1ny1, axis=-1)
-        iou = tf.truediv(
-            intersect_area, (gt_box_area + box_area - intersect_area))
+        iou = tf.truediv(intersect_area, (gt_box_area + box_area - intersect_area))
         sum_iou = tf.reduce_sum(iou, axis=[1, 2, 3])
         self.iou = tf.truediv(sum_iou, num_objects)
 

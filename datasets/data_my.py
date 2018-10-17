@@ -48,10 +48,6 @@ def read_data(data_dir, img_size=(416, 416), pixel_per_grid=32):
     img_paths = []
     img_paths.extend(glob.glob(os.path.join(img_dir, '*.jpg')))
 
-
-    # print(img_paths)
-    # print(len(img_paths))
-
     images = []
     labels = []
 
@@ -65,9 +61,10 @@ def read_data(data_dir, img_size=(416, 416), pixel_per_grid=32):
         img_origin_size = img.shape[:2]
         img = cv2.resize(img, (img_size[1], img_size[0]))
 
+        images.append(img)
         # 확인 해 보는 부분
         # cv2.imshow just read unit8 : issue 01
-        # cv2.imshow('result', img.astype(np.uint8))
+        # cv2.imshow('result', images[0].astype(np.uint8))
         # cv2.waitKey(0)
 
         # load bboxes and reshape for yolo model
@@ -93,7 +90,7 @@ def read_data(data_dir, img_size=(416, 416), pixel_per_grid=32):
         # 어노 내부에서
         # class 에 key ( 번호 ) 와 value ( object 이름 )
         for c_idx, c_name in class_map.items():
-            # 클래스가 없을 수도 있자너
+            # 이미지를 받았는데 클래스가 없을 수도 있자너
             if c_name not in anno:
                 continue
             # 어노테이션의 class 가 있다면, 좌상점, 우하점 받아옴
@@ -106,12 +103,13 @@ def read_data(data_dir, img_size=(416, 416), pixel_per_grid=32):
                                              x_max / origin_weight, y_max / origin_height
                 # print("before : ", c_name, x_min, y_min, x_max, y_max)
 
-                # np.clip ( a, b, c ) : a 가 b 와 c 의 범위로 들어가는 것! : 음수인 부분 잡아준다.
+                # np.clip ( a, b, c ) : a 가 b 와 c 의 범위로 들어가는 것! : 음수인 부분 잡아준다. 근데 음수?
                 x_min, y_min, x_max, y_max = np.clip([x_min, y_min, x_max, y_max], 0, 1)
                 # print("afters : ", c_name, x_min, y_min, x_max, y_max)
 
-                # anchor box 를 각 이미지에 맞게 조정
+                # anchor box 를 각 이미지에 맞게 조정 0~1 scaling
                 anchor_boxes = np.array(anchors) / np.array([origin_weight, origin_height])
+
                 # print(anchor_boxes)
                 # 바운딩 박스 만든다.
                 box_wh = np.array([x_max - x_min, y_max - y_min])
@@ -148,23 +146,21 @@ def read_data(data_dir, img_size=(416, 416), pixel_per_grid=32):
                     iou = intersect_area / (box_area + anchor_area - intersect_area)
                     if iou > best_iou:
                         best_iou = iou
-
                         best_anchor = k
 
                 best_anchor = best_anchor
                 # print("best_anchor", best_anchor)
-                # 중심 부분 찾는 부분
+                # 중심 grid 부분 찾는 부분
                 cx = int(np.floor(0.5 * (x_min + x_max) * grid_w))
                 cy = int(np.floor(0.5 * (y_min + y_max) * grid_h))
-
-                ## ??
+                print(cx, cy)
                 label[cy, cx, best_anchor, 0:4] = [x_min, y_min, x_max, y_max]
 
-                # confidence ~ probability
-
+                # confidence
                 label[cy, cx, best_anchor, 4] = 1.0
-                label[cy, cx, best_anchor, 5 + int(c_idx)] = 1.0
 
+                # probability
+                label[cy, cx, best_anchor, 5 + int(c_idx)] = 1.0
         labels.append(label)
 
     x_set = np.array(images, dtype=np.float32)
@@ -174,10 +170,21 @@ def read_data(data_dir, img_size=(416, 416), pixel_per_grid=32):
 
 
 if __name__ == "__main__":
-    data_directory = '../data/face/train'
-    read_data(data_directory)
+    # data_directory = '../data/face/train'
+    # read_data(data_directory)
+    #
+    grid_w = 13
+    grid_h = 13
+    grid_wh = np.reshape([13, 13], [1, 1, 1, 1, 2]).astype(np.float32)
+    print(grid_wh)
+    # transpose 가 axis 를 변경하는 것인데,
+    cxcy = np.transpose([np.tile(np.arange(13), 13), np.repeat(np.arange(grid_h), grid_w)])
+    #
 
+    cxcy = np.reshape(cxcy, (1, grid_h, grid_w, 1, 2))
+    # print(cxcy)
 
+    print(cxcy[..., 0:2])
 
 
 
