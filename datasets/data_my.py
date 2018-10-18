@@ -150,7 +150,7 @@ def read_data(data_dir, img_size=(416, 416), pixel_per_grid=32):
 
                 best_anchor = best_anchor
                 # print("best_anchor", best_anchor)
-                # 중심 grid 부분 찾는 부분
+                # 중심 grid 부분 찾는 부분 몇번째 grid 에 있느냐
                 cx = int(np.floor(0.5 * (x_min + x_max) * grid_w))
                 cy = int(np.floor(0.5 * (y_min + y_max) * grid_h))
                 print(cx, cy)
@@ -176,20 +176,23 @@ if __name__ == "__main__":
     grid_w = 13
     grid_h = 13
     grid_wh = np.reshape([13, 13], [1, 1, 1, 1, 2]).astype(np.float32)
-    print(grid_wh)
+    # print(grid_wh)
     # transpose 가 axis 를 변경하는 것인데,
     cxcy = np.transpose([np.tile(np.arange(13), 13), np.repeat(np.arange(grid_h), grid_w)])
     #
     arr = np.array([1, 2, 3, 4])
     rep = np.repeat(arr, 3)
-    print(rep)
+    # print(rep)
     tras = np.transpose([(0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3),
                          (0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3)])
-    print(tras)
+    # print(tras)
     cxcy = np.reshape(cxcy, (1, grid_h, grid_w, 1, 2))
     # print(cxcy)
 
     # print(cxcy[..., 0:2])
+    n = np.array(np.arange(12).reshape(-1, 3, 2))
+    print(n)
+    print(n[..., 1])
 
 
 

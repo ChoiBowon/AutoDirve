@@ -372,19 +372,25 @@ class YOLO(DetectNet):
         #  (-1, self.grid_size[0], self.grid_size[1], self.num_anchors, 5 + self.num_classes))
         # 배치 그리드 h, 그리드 w, 에폭수, 5 + 클래스 갯수)
 
+        # ... means ellipsis
+        # for example a[..., 0] selects the first elements in the last dimension of a multidimensional array.
+        # pred 의 마지막 dimension 에서 [x_min, y_min, x_max, y_max, confidence, probability
+        txty, twth = self.pred[..., 0:2], self.pred[..., 2:4] # pred[..., 0, 1], pred[2, 3]
+        confidence = tf.sigmoid(self.pred[..., 4:5]) # pred[..., 4]
 
-        txty, twth = self.pred[..., 0:2], self.pred[..., 2:4]
-        confidence = tf.sigmoid(self.pred[..., 4:5])
         class_probs = tf.nn.softmax(self.pred[..., 5:], axis=-1) if num_classes > 1 else tf.sigmoid(self.pred[..., 5:])
+
         bxby = tf.sigmoid(txty) + cxcy
+
         pwph = np.reshape(anchors, (1, 1, 1, self.num_anchors, 2)) / 32
         bwbh = tf.exp(twth) * pwph
 
-        `# calculating for prediction
+        # calculating for prediction
         nxny, nwnh = bxby / grid_wh, bwbh / grid_wh
         nx1ny1, nx2ny2 = nxny - 0.5 * nwnh, nxny + 0.5 * nwnh
         self.pred_y = tf.concat((nx1ny1, nx2ny2, confidence, class_probs), axis=-1)
 
+        # iou 구하는 부분
         # calculating IoU for metric
         num_objects = tf.reduce_sum(self.y[..., 4:5], axis=[1, 2, 3, 4])
         max_nx1ny1 = tf.maximum(self.y[..., 0:2], nx1ny1)
@@ -392,28 +398,37 @@ class YOLO(DetectNet):
         intersect_wh = tf.maximum(min_nx2ny2 - max_nx1ny1, 0.0)
         intersect_area = tf.reduce_prod(intersect_wh, axis=-1)
         intersect_area = tf.where(tf.equal(intersect_area, 0.0), tf.zeros_like(intersect_area), intersect_area)
+
+        # iou 구하는 부분
         gt_box_area = tf.reduce_prod(self.y[..., 2:4] - self.y[..., 0:2], axis=-1)
         box_area = tf.reduce_prod(nx2ny2 - nx1ny1, axis=-1)
         iou = tf.truediv(intersect_area, (gt_box_area + box_area - intersect_area))
         sum_iou = tf.reduce_sum(iou, axis=[1, 2, 3])
         self.iou = tf.truediv(sum_iou, num_objects)
 
+        # 중심 그리드는?
         gt_bxby = 0.5 * (self.y[..., 0:2] + self.y[..., 2:4]) * grid_wh
+        # 그리드 크기는?
         gt_bwbh = (self.y[..., 2:4] - self.y[..., 0:2]) * grid_wh
 
         resp_mask = self.y[..., 4:5]
         no_resp_mask = 1.0 - resp_mask
+
         gt_confidence = resp_mask * tf.expand_dims(iou, axis=-1)
         gt_class_probs = self.y[..., 5:]
 
         loss_bxby = loss_weights[0] * resp_mask * \
             tf.square(gt_bxby - bxby)
+
         loss_bwbh = loss_weights[1] * resp_mask * \
             tf.square(tf.sqrt(gt_bwbh) - tf.sqrt(bwbh))
+
         loss_resp_conf = loss_weights[2] * resp_mask * \
             tf.square(gt_confidence - confidence)
+
         loss_no_resp_conf = loss_weights[3] * no_resp_mask * \
             tf.square(gt_confidence - confidence)
+
         loss_class_probs = loss_weights[4] * resp_mask * \
             tf.square(gt_class_probs - class_probs)
 
